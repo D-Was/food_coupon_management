@@ -1,0 +1,2 @@
+INSERT INTO Admins (username, password) VALUES ('value', 'value');
+INSERT INTO FoodItems (name, category, price) VALUES ('Ice Tea', 'Beverages', 80);
