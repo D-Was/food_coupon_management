@@ -19,7 +19,8 @@ compile:
 		$(SRC_DIR)/com/yourapp/view/MainMenu.java \
 		$(SRC_DIR)/com/yourapp/view/CreateCoupons.java \
 		$(SRC_DIR)/com/yourapp/util/DatabaseUtil.java \
-		$(SRC_DIR)/com/yourapp/model/FoodItem.java
+		$(SRC_DIR)/com/yourapp/model/FoodItem.java 
+
 
 # Run
 run: compile

@@ -1,2 +1,19 @@
 INSERT INTO Admins (username, password) VALUES ('value', 'value');
 INSERT INTO FoodItems (name, category, price) VALUES ('Ice Tea', 'Beverages', 80);
+
+
+CREATE TABLE order_table (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    total_price INT NOT NULL,
+    status VARCHAR(50) DEFAULT 'Pending'
+);
+
+CREATE TABLE order_food (
+    order_food_id int NOT NULL,
+    order_id int NOT NULL,
+    food_id int NOT NULL,
+    quantity int NOT NULL,
+    PRIMARY KEY (order_food_id),
+    FOREIGN KEY (order_id) REFERENCES order_table(id),
+    FOREIGN KEY (food_id) REFERENCES food_items(id)
+); 

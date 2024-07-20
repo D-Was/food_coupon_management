@@ -1,7 +1,7 @@
 package com.yourapp.view;
 
+import com.yourapp.model.FoodItem;
 import com.yourapp.util.DatabaseUtil;
-import com.yourapp.util.FoodItem;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -16,7 +16,10 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
+import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class CreateCoupons extends Application {
 
@@ -40,6 +43,8 @@ public class CreateCoupons extends Application {
 
         String currentCategory = "";
         int row = 0;
+        Map<FoodItem, Spinner<Integer>> spinnerMap = new HashMap<>();
+
         for (FoodItem foodItem : foodItems) {
             if (!foodItem.getCategory().equals(currentCategory)) {
                 currentCategory = foodItem.getCategory();
@@ -52,6 +57,7 @@ public class CreateCoupons extends Application {
             Label nameLabel = new Label(foodItem.getName());
             Label priceLabel = new Label("Rs " + foodItem.getPrice() + ":");
             Spinner<Integer> foodSpinner = new Spinner<>(0, 10, 0);
+            spinnerMap.put(foodItem, foodSpinner);
 
             HBox itemBox = new HBox(10, nameLabel, priceLabel, foodSpinner);
             itemBox.setAlignment(Pos.CENTER_LEFT);
@@ -64,8 +70,32 @@ public class CreateCoupons extends Application {
 
         Button submitButton = new Button("Submit");
         submitButton.setOnAction(e -> {
-            // Handle the submission logic here
-            System.out.println("Submit button clicked");
+            boolean isValidOrder = false;
+            int totalPrice = 0;
+
+            Map<FoodItem, Integer> orderItems = new HashMap<>();
+            for (Map.Entry<FoodItem, Spinner<Integer>> entry : spinnerMap.entrySet()) {
+                int quantity = entry.getValue().getValue();
+                if (quantity > 0) {
+                    isValidOrder = true;
+                    totalPrice += entry.getKey().getPrice() * quantity;
+                    orderItems.put(entry.getKey(), quantity);
+                }
+            }
+
+            if (isValidOrder) {
+                try {
+                    MainMenu mainMenu = new MainMenu();
+                    int orderId = DatabaseUtil.insertOrder(totalPrice);
+                    DatabaseUtil.insertOrderItems(orderId, orderItems);
+                    System.out.println("Order submitted with token number: " + orderId);
+                    mainMenu.start(primaryStage);
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            } else {
+                System.out.println("Please select at least one item.");
+            }
         });
 
         Button backButton = new Button("Back");
@@ -78,7 +108,7 @@ public class CreateCoupons extends Application {
             }
         });
 
-        HBox buttonBox = new HBox(10, submitButton, backButton);
+        HBox buttonBox = new HBox(10, backButton, submitButton);
         buttonBox.setAlignment(Pos.CENTER);
 
         VBox mainBox = new VBox(20, gridPane, buttonBox);
