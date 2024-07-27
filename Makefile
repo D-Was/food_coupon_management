@@ -19,6 +19,7 @@ compile:
 		$(SRC_DIR)/com/yourapp/view/MainMenu.java \
 		$(SRC_DIR)/com/yourapp/view/OrderListWindow.java \
 		$(SRC_DIR)/com/yourapp/view/EditCoupons.java \
+		$(SRC_DIR)/com/yourapp/view/EditSingleCoupon.java \
 		$(SRC_DIR)/com/yourapp/view/DeleteCoupons.java \
 		$(SRC_DIR)/com/yourapp/view/CreateCoupons.java \
 		$(SRC_DIR)/com/yourapp/util/DatabaseUtil.java \

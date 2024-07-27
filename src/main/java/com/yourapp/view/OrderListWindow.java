@@ -10,6 +10,7 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.layout.HBox;
 import javafx.scene.Cursor;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.sql.*;
@@ -32,20 +33,15 @@ public class OrderListWindow {
                 orderHeader.setStyle("-fx-font-weight: bold;");
                 orderHeader.setCursor(Cursor.HAND);
                 orderHeader.setOnMouseClicked(event -> {
-                    if (actionType.equals("edit")) {
-                        System.out.println("Order " + orderId + " edited");
-                    } else if (actionType.equals("delete")) {
+                    if (actionType.equals("edit")) {          
+                        EditSingleCoupon editSingleCoupon = new EditSingleCoupon(orderDetails);
                         try {
-                            DatabaseUtil.deleteOrder(orderId);
-                            MainMenu mainMenu = new MainMenu();
-                            try {
-                                mainMenu.start(primaryStage);
-                            } catch (Exception ex) {
-                                ex.printStackTrace();
-                            }
-                        } catch (SQLException e) {
-                            e.printStackTrace();
+                            editSingleCoupon.start(primaryStage);
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
                         }
+                    } else if (actionType.equals("delete")) {
+                        showDeleteConfirmation(primaryStage, orderId);
                     }
                 });
 
@@ -93,5 +89,43 @@ public class OrderListWindow {
         primaryStage.setTitle("Order List");
         primaryStage.setScene(scene);
         primaryStage.show();
+    }
+
+    private void showDeleteConfirmation(Stage owner, int orderId) {
+        Stage confirmationStage = new Stage();
+        confirmationStage.initModality(Modality.WINDOW_MODAL);
+        confirmationStage.initOwner(owner);
+
+        VBox vbox = new VBox();
+        vbox.setSpacing(10);
+        vbox.setStyle("-fx-padding: 10;");
+
+        Label confirmationMessage = new Label("Are you sure you want to delete order " + orderId + "?");
+        vbox.getChildren().add(confirmationMessage);
+
+        HBox buttonsBox = new HBox();
+        buttonsBox.setSpacing(10);
+
+        Button deleteButton = new Button("Delete");
+        deleteButton.setOnAction(event -> {
+            try {
+                DatabaseUtil.deleteOrder(orderId);
+                confirmationStage.close();
+                start(owner, "delete");
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        });
+
+        Button backButton = new Button("Back");
+        backButton.setOnAction(event -> confirmationStage.close());
+
+        buttonsBox.getChildren().addAll(deleteButton, backButton);
+        vbox.getChildren().add(buttonsBox);
+
+        Scene scene = new Scene(vbox);
+        confirmationStage.setScene(scene);
+        confirmationStage.setTitle("Confirm Deletion");
+        confirmationStage.show();
     }
 }

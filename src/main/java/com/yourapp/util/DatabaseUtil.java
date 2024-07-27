@@ -177,6 +177,60 @@ public class DatabaseUtil {
         }
     }
 
-    
+    public static void updateOrder(int orderId, int totalPrice, Map<FoodItem, Integer> orderItems) throws SQLException {
+        Connection connection = null;
+        PreparedStatement updateOrderStmt = null;
+        PreparedStatement deleteOrderItemsStmt = null;
+        PreparedStatement insertOrderItemStmt = null;
+
+        try {
+            connection = getConnection();
+            connection.setAutoCommit(false);
+
+            String updateOrderQuery = "UPDATE order_table SET total_price = ? WHERE id = ?";
+            updateOrderStmt = connection.prepareStatement(updateOrderQuery);
+            updateOrderStmt.setInt(1, totalPrice);
+            updateOrderStmt.setInt(2, orderId);
+            updateOrderStmt.executeUpdate();
+
+            String deleteOrderItemsQuery = "DELETE FROM order_food WHERE order_id = ?";
+            deleteOrderItemsStmt = connection.prepareStatement(deleteOrderItemsQuery);
+            deleteOrderItemsStmt.setInt(1, orderId);
+            deleteOrderItemsStmt.executeUpdate();
+
+            String insertOrderItemQuery = "INSERT INTO order_food (order_id, food_id, quantity) VALUES (?, ?, ?)";
+            insertOrderItemStmt = connection.prepareStatement(insertOrderItemQuery);
+
+            for (Map.Entry<FoodItem, Integer> entry : orderItems.entrySet()) {
+                insertOrderItemStmt.setInt(1, orderId);
+                insertOrderItemStmt.setInt(2, entry.getKey().getId());
+                insertOrderItemStmt.setInt(3, entry.getValue());
+                insertOrderItemStmt.addBatch();
+            }
+
+            insertOrderItemStmt.executeBatch();
+
+            connection.commit();
+        } catch (SQLException e) {
+            if (connection != null) {
+                connection.rollback();
+            }
+            throw e;
+        } finally {
+            if (updateOrderStmt != null) {
+                updateOrderStmt.close();
+            }
+            if (deleteOrderItemsStmt != null) {
+                deleteOrderItemsStmt.close();
+            }
+            if (insertOrderItemStmt != null) {
+                insertOrderItemStmt.close();
+            }
+            if (connection != null) {
+                connection.setAutoCommit(true);
+                connection.close();
+            }
+        }
+    }    
 
 }
