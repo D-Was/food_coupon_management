@@ -3,37 +3,49 @@ package com.yourapp.view;
 import com.yourapp.model.FoodItem;
 import com.yourapp.model.OrderDetails;
 import com.yourapp.util.DatabaseUtil;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.layout.HBox;
-import javafx.scene.Cursor;
+import javafx.scene.layout.StackPane;
+import javafx.scene.text.Font;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.scene.Cursor;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
 
 public class OrderListWindow {
 
     public void start(Stage primaryStage, String actionType) {
+        // Create a new VBox for the content
         VBox vbox = new VBox();
         vbox.setSpacing(10);
+        vbox.setPadding(new Insets(20));
 
         try {
+            // Fetch and display orders
             List<OrderDetails> orders = DatabaseUtil.getAllOrders();
             for (OrderDetails orderDetails : orders) {
                 int orderId = orderDetails.getOrderId();
                 Map<FoodItem, Integer> foodItems = orderDetails.getFoodItems();
 
-                // Create the header for each order
+                // Create order header
                 Label orderHeader = new Label("Order Number: " + orderId);
+                orderHeader.setFont(new Font("Arial", 16));
                 orderHeader.setStyle("-fx-font-weight: bold;");
+                orderHeader.setPadding(new Insets(10, 0, 10, 0));
+                orderHeader.setAlignment(Pos.CENTER);
+                orderHeader.setPrefWidth(Double.MAX_VALUE);
                 orderHeader.setCursor(Cursor.HAND);
                 orderHeader.setOnMouseClicked(event -> {
-                    if (actionType.equals("edit")) {          
+                    if (actionType.equals("edit")) {
                         EditSingleCoupon editSingleCoupon = new EditSingleCoupon(orderDetails);
                         try {
                             editSingleCoupon.start(primaryStage);
@@ -45,30 +57,48 @@ public class OrderListWindow {
                     }
                 });
 
-                // Create a VBox to hold the items for this order
+                // Create items box
                 VBox itemsBox = new VBox();
                 itemsBox.setSpacing(5);
+                itemsBox.setPadding(new Insets(10));
+                itemsBox.setStyle("-fx-border-color: black; -fx-border-width: 1px; -fx-background-color: #f5f5f5;");
+                itemsBox.setPrefWidth(Double.MAX_VALUE);
+
                 for (Map.Entry<FoodItem, Integer> entry : foodItems.entrySet()) {
                     FoodItem foodItem = entry.getKey();
                     int quantity = entry.getValue();
-                    Label itemLabel = new Label("   " + foodItem.getName() + " qty: " + quantity);
-                    itemsBox.getChildren().add(itemLabel);
+
+                    HBox itemBox = new HBox();
+                    itemBox.setSpacing(10);
+                    itemBox.setAlignment(Pos.CENTER_LEFT);
+                    itemBox.setPrefWidth(Double.MAX_VALUE);
+
+                    Label itemName = new Label(foodItem.getName());
+                    itemName.setFont(new Font("Arial", 14));
+                    itemName.setPrefWidth(200);
+
+                    Label itemQuantity = new Label("qty: " + quantity);
+                    itemQuantity.setFont(new Font("Arial", 14));
+
+                    itemBox.getChildren().addAll(itemName, itemQuantity);
+                    itemsBox.getChildren().add(itemBox);
                 }
 
-                // Add the order header and items to the main VBox
                 vbox.getChildren().addAll(orderHeader, itemsBox);
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            // Handle the exception (e.g., show an error message to the user)
         }
 
-        // Create a HBox for the button
+        // Create and add bottom box
         HBox bottomBox = new HBox();
         bottomBox.setSpacing(10);
-        bottomBox.setStyle("-fx-alignment: center;"); // Center align content in the HBox
+        bottomBox.setAlignment(Pos.CENTER);
+        bottomBox.setPadding(new Insets(20));
 
         Button backButton = new Button("Back");
+        backButton.setFont(new Font("Arial", 20));
+        backButton.setPrefWidth(150);
         backButton.setOnAction(event -> {
             MainMenu mainMenu = new MainMenu();
             try {
@@ -79,16 +109,25 @@ public class OrderListWindow {
         });
 
         bottomBox.getChildren().add(backButton);
-
-        // Add the bottomBox to the main VBox
         vbox.getChildren().add(bottomBox);
 
+        // Create and set ScrollPane
         ScrollPane scrollPane = new ScrollPane(vbox);
-        Scene scene = new Scene(scrollPane, 400, 600);
+        scrollPane.setFitToWidth(true);
 
+        StackPane root = new StackPane();
+        root.getChildren().add(scrollPane);
+
+        // Create and set Scene
+        Scene scene = new Scene(root);
         primaryStage.setTitle("Order List");
         primaryStage.setScene(scene);
+        primaryStage.setFullScreen(true);
         primaryStage.show();
+
+        // Force UI to update
+        primaryStage.getScene().getRoot().requestLayout();
+        primaryStage.getScene().getRoot().applyCss();
     }
 
     private void showDeleteConfirmation(Stage owner, int orderId) {
@@ -98,20 +137,22 @@ public class OrderListWindow {
 
         VBox vbox = new VBox();
         vbox.setSpacing(10);
-        vbox.setStyle("-fx-padding: 10;");
+        vbox.setPadding(new Insets(20));
 
         Label confirmationMessage = new Label("Are you sure you want to delete order " + orderId + "?");
         vbox.getChildren().add(confirmationMessage);
 
         HBox buttonsBox = new HBox();
         buttonsBox.setSpacing(10);
+        buttonsBox.setAlignment(Pos.CENTER);
 
         Button deleteButton = new Button("Delete");
         deleteButton.setOnAction(event -> {
             try {
                 DatabaseUtil.deleteOrder(orderId);
                 confirmationStage.close();
-                start(owner, "delete");
+                MainMenu m = new MainMenu();
+                m.start(owner);
             } catch (SQLException e) {
                 e.printStackTrace();
             }

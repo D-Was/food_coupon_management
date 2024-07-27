@@ -13,7 +13,7 @@ public class EditCoupons extends Application {
         // Create and display the OrderListWindow with edit action
         OrderListWindow orderListWindow = new OrderListWindow();
         orderListWindow.start(primaryStage, "edit");
-
+        primaryStage.setFullScreenExitHint("");
         primaryStage.show();
 
         // For now, just printing that the EditCoupon window is displayed
