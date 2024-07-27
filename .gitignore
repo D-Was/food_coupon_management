@@ -1,1 +1,4 @@
 ./build
+./copy.py
+./output.txt
+./__pycache__

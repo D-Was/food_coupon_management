@@ -25,14 +25,22 @@ public class MainMenu extends Application {
 
         Button editButton = new Button("Edit Coupons");
         editButton.setOnAction(e -> {
-            // Code to open the Edit Coupons screen
-            System.out.println("Edit Coupons clicked");
+            EditCoupons editCoupons = new EditCoupons();
+            try {
+                editCoupons.start(primaryStage);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
         });
 
         Button deleteButton = new Button("Delete Coupons");
         deleteButton.setOnAction(e -> {
-            // Code to open the Delete Coupons screen
-            System.out.println("Delete Coupons clicked");
+            DeleteCoupons deleteCoupons = new DeleteCoupons();
+            try {
+                deleteCoupons.start(primaryStage);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
         });
 
         VBox vbox = new VBox(10, createButton, editButton, deleteButton);

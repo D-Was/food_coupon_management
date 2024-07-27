@@ -1,0 +1,391 @@
+./src/main/java/com/yourapp/Main.java:
+package com.yourapp;
+
+import com.yourapp.view.AdminLogin;
+import javafx.application.Application;
+import javafx.stage.Stage;
+
+public class Main extends Application {
+    @Override
+    public void start(Stage primaryStage) {
+        AdminLogin adminLogin = new AdminLogin();
+        adminLogin.start(primaryStage);
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+}
+
+
+./src/main/java/com/yourapp/model/FoodItem.java:
+package com.yourapp.model;
+
+public class FoodItem {
+    private int id;
+    private String name;
+    private String category;
+    private double price;
+
+    public FoodItem(int id, String name, String category, double price) {
+        this.id = id;
+        this.name = name;
+        this.category = category;
+        this.price = price;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public double getPrice() {
+        return price;
+    }
+}
+
+
+./src/main/java/com/yourapp/view/MainMenu.java:
+package com.yourapp.view;
+
+import javafx.application.Application;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+
+public class MainMenu extends Application {
+    @Override
+    public void start(Stage primaryStage) {
+        primaryStage.setTitle("Admin Menu");
+
+        Button createButton = new Button("Create Coupons");
+        createButton.setOnAction(e -> {
+            // Code to open the Create Coupons screen
+            CreateCoupons createCoupons = new CreateCoupons();
+            try {
+                createCoupons.start(primaryStage);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        Button editButton = new Button("Edit Coupons");
+        editButton.setOnAction(e -> {
+            // Code to open the Edit Coupons screen
+            System.out.println("Edit Coupons clicked");
+        });
+
+        Button deleteButton = new Button("Delete Coupons");
+        deleteButton.setOnAction(e -> {
+            // Code to open the Delete Coupons screen
+            System.out.println("Delete Coupons clicked");
+        });
+
+        VBox vbox = new VBox(10, createButton, editButton, deleteButton);
+        vbox.setAlignment(Pos.CENTER);
+
+        Scene scene = new Scene(vbox, 300, 200);
+        primaryStage.setScene(scene);
+        primaryStage.show();
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+}
+
+
+./src/main/java/com/yourapp/view/CreateCoupons.java:
+package com.yourapp.view;
+
+import com.yourapp.model.FoodItem;
+import com.yourapp.util.DatabaseUtil;
+import javafx.application.Application;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.Spinner;
+import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class CreateCoupons extends Application {
+
+    @Override
+    public void start(Stage primaryStage) {
+        primaryStage.setTitle("Create Coupons");
+
+        List<FoodItem> foodItems = DatabaseUtil.getFoodItems();
+
+        GridPane gridPane = new GridPane();
+        gridPane.setVgap(10);
+        gridPane.setHgap(10);
+        gridPane.setPadding(new Insets(20));
+        ColumnConstraints column1 = new ColumnConstraints();
+        ColumnConstraints column2 = new ColumnConstraints();
+        ColumnConstraints column3 = new ColumnConstraints();
+        column1.setHgrow(Priority.ALWAYS);
+        column2.setHgrow(Priority.NEVER);
+        column3.setHgrow(Priority.NEVER);
+        gridPane.getColumnConstraints().addAll(column1, column2, column3);
+
+        String currentCategory = "";
+        int row = 0;
+        Map<FoodItem, Spinner<Integer>> spinnerMap = new HashMap<>();
+
+        for (FoodItem foodItem : foodItems) {
+            if (!foodItem.getCategory().equals(currentCategory)) {
+                currentCategory = foodItem.getCategory();
+                Label categoryLabel = new Label(currentCategory);
+                categoryLabel.setStyle("-fx-font-weight: bold;");
+                gridPane.add(categoryLabel, 0, row, 3, 1); // Span 3 columns for category label
+                row++;
+            }
+
+            Label nameLabel = new Label(foodItem.getName());
+            Label priceLabel = new Label("Rs " + foodItem.getPrice() + ":");
+            Spinner<Integer> foodSpinner = new Spinner<>(0, 10, 0);
+            spinnerMap.put(foodItem, foodSpinner);
+
+            HBox itemBox = new HBox(10, nameLabel, priceLabel, foodSpinner);
+            itemBox.setAlignment(Pos.CENTER_LEFT);
+
+            gridPane.add(nameLabel, 0, row);
+            gridPane.add(priceLabel, 1, row);
+            gridPane.add(foodSpinner, 2, row);
+            row++;
+        }
+
+        Button submitButton = new Button("Submit");
+        submitButton.setOnAction(e -> {
+            boolean isValidOrder = false;
+            int totalPrice = 0;
+
+            Map<FoodItem, Integer> orderItems = new HashMap<>();
+            for (Map.Entry<FoodItem, Spinner<Integer>> entry : spinnerMap.entrySet()) {
+                int quantity = entry.getValue().getValue();
+                if (quantity > 0) {
+                    isValidOrder = true;
+                    totalPrice += entry.getKey().getPrice() * quantity;
+                    orderItems.put(entry.getKey(), quantity);
+                }
+            }
+
+            if (isValidOrder) {
+                try {
+                    MainMenu mainMenu = new MainMenu();
+                    int orderId = DatabaseUtil.insertOrder(totalPrice);
+                    DatabaseUtil.insertOrderItems(orderId, orderItems);
+                    System.out.println("Order submitted with token number: " + orderId);
+                    mainMenu.start(primaryStage);
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            } else {
+                System.out.println("Please select at least one item.");
+            }
+        });
+
+        Button backButton = new Button("Back");
+        backButton.setOnAction(e -> {
+            MainMenu mainMenu = new MainMenu();
+            try {
+                mainMenu.start(primaryStage);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        HBox buttonBox = new HBox(10, backButton, submitButton);
+        buttonBox.setAlignment(Pos.CENTER);
+
+        VBox mainBox = new VBox(20, gridPane, buttonBox);
+        mainBox.setAlignment(Pos.TOP_CENTER);
+        mainBox.setPadding(new Insets(20));
+        VBox.setVgrow(gridPane, Priority.ALWAYS);
+
+        Scene scene = new Scene(mainBox, 600, 600);
+        primaryStage.setScene(scene);
+        primaryStage.show();
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+}
+
+
+./src/main/java/com/yourapp/view/AdminLogin.java:
+package com.yourapp.view;
+
+import javafx.application.Application;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+import com.yourapp.util.DatabaseUtil;
+
+public class AdminLogin extends Application {
+    @Override
+    public void start(Stage primaryStage) {
+        primaryStage.setTitle("Admin Login");
+
+        Label usernameLabel = new Label("Username:");
+        TextField usernameField = new TextField();
+        Label passwordLabel = new Label("Password:");
+        PasswordField passwordField = new PasswordField();
+        Button loginButton = new Button("Login");
+
+        Label messageLabel = new Label();
+
+        loginButton.setOnAction(e -> {
+            String username = usernameField.getText();
+            String password = passwordField.getText();
+            if (DatabaseUtil.validateAdmin(username, password)) {
+                messageLabel.setText("Login successful!");
+                // Redirect to Main Menu
+                MainMenu mainMenu = new MainMenu();
+                try {
+                    mainMenu.start(primaryStage);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            } else {
+                messageLabel.setText("Invalid username or password");
+            }
+        });
+
+        VBox vbox = new VBox(10, usernameLabel, usernameField, passwordLabel, passwordField, loginButton, messageLabel);
+        vbox.setAlignment(Pos.CENTER);
+
+        Scene scene = new Scene(vbox, 300, 200);
+        primaryStage.setScene(scene);
+        primaryStage.show();
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+}
+
+
+./src/main/java/com/yourapp/util/DatabaseUtil.java:
+package com.yourapp.util;
+
+import com.yourapp.model.FoodItem;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class DatabaseUtil {
+    private static final String URL = "jdbc:mysql://localhost:3306/food_coupon_management";
+    private static final String USER = "coupon_admin";
+    private static final String PASSWORD = "coupon123";
+
+    public static Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(URL, USER, PASSWORD);
+    }
+
+    public static boolean validateAdmin(String username, String password) {
+        String query = "SELECT * FROM Admins WHERE username = ? AND password = ?";
+
+        try (Connection connection = getConnection();
+                PreparedStatement statement = connection.prepareStatement(query)) {
+
+            statement.setString(1, username);
+            statement.setString(2, password);
+            ResultSet resultSet = statement.executeQuery();
+
+            return resultSet.next();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public static List<FoodItem> getFoodItems() {
+        List<FoodItem> foodItems = new ArrayList<>();
+        String query = "SELECT id, name, category, price FROM food_items";
+
+        try (Connection connection = getConnection();
+                PreparedStatement statement = connection.prepareStatement(query);
+                ResultSet resultSet = statement.executeQuery()) {
+
+            while (resultSet.next()) {
+                int id = resultSet.getInt("id");
+                String name = resultSet.getString("name");
+                String category = resultSet.getString("category");
+                double price = resultSet.getDouble("price");
+                foodItems.add(new FoodItem(id, name, category, price));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return foodItems;
+    }
+
+    public static int insertOrder(int totalPrice) throws SQLException {
+        String insertOrderSQL = "INSERT INTO order_table (total_price, status) VALUES (?, ?)";
+        try (Connection connection = getConnection();
+                PreparedStatement orderStatement = connection.prepareStatement(insertOrderSQL,
+                        PreparedStatement.RETURN_GENERATED_KEYS)) {
+            orderStatement.setInt(1, totalPrice);
+            orderStatement.setString(2, "Pending");
+            orderStatement.executeUpdate();
+
+            try (ResultSet generatedKeys = orderStatement.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    return generatedKeys.getInt(1);
+                } else {
+                    throw new SQLException("Creating order failed, no ID obtained.");
+                }
+            }
+        }
+    }
+
+    public static void insertOrderItems(int orderId, Map<FoodItem, Integer> orderItems) throws SQLException {
+        String insertOrderFoodSQL = "INSERT INTO order_food (order_id, food_id, quantity) VALUES (?, ?, ?)";
+        try (Connection connection = getConnection();
+                PreparedStatement orderFoodStatement = connection.prepareStatement(insertOrderFoodSQL)) {
+            for (Map.Entry<FoodItem, Integer> entry : orderItems.entrySet()) {
+                orderFoodStatement.setInt(1, orderId);
+                orderFoodStatement.setInt(2, entry.getKey().getId());
+                orderFoodStatement.setInt(3, entry.getValue());
+                orderFoodStatement.addBatch();
+            }
+            orderFoodStatement.executeBatch();
+        }
+    }
+}
+
+

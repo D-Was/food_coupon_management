@@ -17,9 +17,13 @@ compile:
 		$(SRC_DIR)/com/yourapp/Main.java \
 		$(SRC_DIR)/com/yourapp/view/AdminLogin.java \
 		$(SRC_DIR)/com/yourapp/view/MainMenu.java \
+		$(SRC_DIR)/com/yourapp/view/OrderListWindow.java \
+		$(SRC_DIR)/com/yourapp/view/EditCoupons.java \
+		$(SRC_DIR)/com/yourapp/view/DeleteCoupons.java \
 		$(SRC_DIR)/com/yourapp/view/CreateCoupons.java \
 		$(SRC_DIR)/com/yourapp/util/DatabaseUtil.java \
-		$(SRC_DIR)/com/yourapp/model/FoodItem.java 
+		$(SRC_DIR)/com/yourapp/model/FoodItem.java \
+		$(SRC_DIR)/com/yourapp/model/OrderDetails.java 
 
 
 # Run
