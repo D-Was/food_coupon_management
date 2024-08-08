@@ -17,6 +17,29 @@ public class Main extends Application {
     }
 }
 
+./src/main/java/com/yourapp/model/OrderDetails.java:
+package com.yourapp.model;
+
+import java.util.Map;
+
+public class OrderDetails {
+    private int orderId;
+    private Map<FoodItem, Integer> foodItems; // Map of food items and their quantities
+
+    public OrderDetails(int orderId, Map<FoodItem, Integer> foodItems) {
+        this.orderId = orderId;
+        this.foodItems = foodItems;
+    }
+
+    public int getOrderId() {
+        return orderId;
+    }
+
+    public Map<FoodItem, Integer> getFoodItems() {
+        return foodItems;
+    }
+}
+
 
 ./src/main/java/com/yourapp/model/FoodItem.java:
 package com.yourapp.model;
@@ -52,24 +75,234 @@ public class FoodItem {
 }
 
 
+./src/main/java/com/yourapp/view/OrderListWindow.java:
+package com.yourapp.view;
+
+import com.yourapp.model.FoodItem;
+import com.yourapp.model.OrderDetails;
+import com.yourapp.util.DatabaseUtil;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
+import javafx.scene.text.Font;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+import javafx.scene.Cursor;
+
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
+
+public class OrderListWindow {
+
+    public void start(Stage primaryStage, String actionType) {
+        // Create a new VBox for the content
+        VBox vbox = new VBox();
+        vbox.setSpacing(10);
+        vbox.setPadding(new Insets(20));
+
+        try {
+            // Fetch and display orders
+            List<OrderDetails> orders = DatabaseUtil.getAllOrders();
+            for (OrderDetails orderDetails : orders) {
+                int orderId = orderDetails.getOrderId();
+                Map<FoodItem, Integer> foodItems = orderDetails.getFoodItems();
+
+                // Create order header
+                Label orderHeader = new Label("Order Number: " + orderId);
+                orderHeader.setFont(new Font("Arial", 16));
+                orderHeader.setStyle("-fx-font-weight: bold;");
+                orderHeader.setPadding(new Insets(10, 0, 10, 0));
+                orderHeader.setAlignment(Pos.CENTER);
+                orderHeader.setPrefWidth(Double.MAX_VALUE);
+                orderHeader.setCursor(Cursor.HAND);
+                orderHeader.setOnMouseClicked(event -> {
+                    if (actionType.equals("edit")) {
+                        EditSingleCoupon editSingleCoupon = new EditSingleCoupon(orderDetails);
+                        try {
+                            editSingleCoupon.start(primaryStage);
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
+                    } else if (actionType.equals("delete")) {
+                        showDeleteConfirmation(primaryStage, orderId);
+                    }
+                });
+
+                // Create items box
+                VBox itemsBox = new VBox();
+                itemsBox.setSpacing(5);
+                itemsBox.setPadding(new Insets(10));
+                itemsBox.setStyle("-fx-border-color: black; -fx-border-width: 1px; -fx-background-color: #f5f5f5;");
+                itemsBox.setPrefWidth(Double.MAX_VALUE);
+
+                for (Map.Entry<FoodItem, Integer> entry : foodItems.entrySet()) {
+                    FoodItem foodItem = entry.getKey();
+                    int quantity = entry.getValue();
+
+                    HBox itemBox = new HBox();
+                    itemBox.setSpacing(10);
+                    itemBox.setAlignment(Pos.CENTER_LEFT);
+                    itemBox.setPrefWidth(Double.MAX_VALUE);
+
+                    Label itemName = new Label(foodItem.getName());
+                    itemName.setFont(new Font("Arial", 14));
+                    itemName.setPrefWidth(200);
+
+                    Label itemQuantity = new Label("qty: " + quantity);
+                    itemQuantity.setFont(new Font("Arial", 14));
+
+                    itemBox.getChildren().addAll(itemName, itemQuantity);
+                    itemsBox.getChildren().add(itemBox);
+                }
+
+                vbox.getChildren().addAll(orderHeader, itemsBox);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        // Create and add bottom box
+        HBox bottomBox = new HBox();
+        bottomBox.setSpacing(10);
+        bottomBox.setAlignment(Pos.CENTER);
+        bottomBox.setPadding(new Insets(20));
+
+        Button backButton = new Button("Back");
+        backButton.setFont(new Font("Arial", 20));
+        backButton.setPrefWidth(150);
+        backButton.setOnAction(event -> {
+            MainMenu mainMenu = new MainMenu();
+            try {
+                mainMenu.start(primaryStage);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        bottomBox.getChildren().add(backButton);
+        vbox.getChildren().add(bottomBox);
+
+        // Create and set ScrollPane
+        ScrollPane scrollPane = new ScrollPane(vbox);
+        scrollPane.setFitToWidth(true);
+
+        StackPane root = new StackPane();
+        root.getChildren().add(scrollPane);
+
+        // Create and set Scene
+        Scene scene = new Scene(root);
+        primaryStage.setTitle("Order List");
+        primaryStage.setScene(scene);
+        primaryStage.setFullScreen(true);
+        primaryStage.show();
+
+        // Force UI to update
+        primaryStage.getScene().getRoot().requestLayout();
+        primaryStage.getScene().getRoot().applyCss();
+    }
+
+    private void showDeleteConfirmation(Stage owner, int orderId) {
+        Stage confirmationStage = new Stage();
+        confirmationStage.initModality(Modality.WINDOW_MODAL);
+        confirmationStage.initOwner(owner);
+
+        VBox vbox = new VBox();
+        vbox.setSpacing(10);
+        vbox.setPadding(new Insets(20));
+
+        Label confirmationMessage = new Label("Are you sure you want to delete order " + orderId + "?");
+        vbox.getChildren().add(confirmationMessage);
+
+        HBox buttonsBox = new HBox();
+        buttonsBox.setSpacing(10);
+        buttonsBox.setAlignment(Pos.CENTER);
+
+        Button deleteButton = new Button("Delete");
+        deleteButton.setOnAction(event -> {
+            try {
+                DatabaseUtil.deleteOrder(orderId);
+                confirmationStage.close();
+                MainMenu m = new MainMenu();
+                m.start(owner);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        });
+
+        Button backButton = new Button("Back");
+        backButton.setOnAction(event -> confirmationStage.close());
+
+        buttonsBox.getChildren().addAll(deleteButton, backButton);
+        vbox.getChildren().add(buttonsBox);
+
+        Scene scene = new Scene(vbox);
+        confirmationStage.setScene(scene);
+        confirmationStage.setTitle("Confirm Deletion");
+        confirmationStage.show();
+    }
+}
+
+
 ./src/main/java/com/yourapp/view/MainMenu.java:
 package com.yourapp.view;
 
 import javafx.application.Application;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Font;
 import javafx.stage.Stage;
+
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 
 public class MainMenu extends Application {
     @Override
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Admin Menu");
 
+        // Load background image
+        Image backgroundImage = null;
+        try {
+            backgroundImage = new Image(new FileInputStream("./src/main/resources/background2.jpg"));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        ImageView backgroundImageView = new ImageView(backgroundImage);
+        backgroundImageView.setFitWidth(1920); // Adjust size as needed
+        backgroundImageView.setFitHeight(1080);
+        backgroundImageView.setPreserveRatio(true);
+
+        // Load custom font
+        Font lobsterFont = null;
+        try {
+            lobsterFont = Font.loadFont(new FileInputStream("./src/main/resources/Lobster-Regular.ttf"), 80);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        Label title = new Label("Main Menu");
+        title.setFont(lobsterFont); // Use the custom font for the title
+
         Button createButton = new Button("Create Coupons");
+        createButton.setFont(new Font("Arial", 20));
+        createButton.setPrefWidth(300);
         createButton.setOnAction(e -> {
-            // Code to open the Create Coupons screen
             CreateCoupons createCoupons = new CreateCoupons();
             try {
                 createCoupons.start(primaryStage);
@@ -79,23 +312,79 @@ public class MainMenu extends Application {
         });
 
         Button editButton = new Button("Edit Coupons");
+        editButton.setFont(new Font("Arial", 20));
+        editButton.setPrefWidth(300);
         editButton.setOnAction(e -> {
-            // Code to open the Edit Coupons screen
-            System.out.println("Edit Coupons clicked");
+            EditCoupons editCoupons = new EditCoupons();
+            try {
+                editCoupons.start(primaryStage);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
         });
 
         Button deleteButton = new Button("Delete Coupons");
+        deleteButton.setFont(new Font("Arial", 20));
+        deleteButton.setPrefWidth(300);
         deleteButton.setOnAction(e -> {
-            // Code to open the Delete Coupons screen
-            System.out.println("Delete Coupons clicked");
+            DeleteCoupons deleteCoupons = new DeleteCoupons();
+            try {
+                deleteCoupons.start(primaryStage);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
         });
 
-        VBox vbox = new VBox(10, createButton, editButton, deleteButton);
-        vbox.setAlignment(Pos.CENTER);
+        VBox buttonBox = new VBox(20, createButton, editButton, deleteButton);
+        buttonBox.setAlignment(Pos.CENTER);
 
-        Scene scene = new Scene(vbox, 300, 200);
+        // Spacer to center the buttons vertically
+        Region topSpacer = new Region();
+        Region bottomSpacer = new Region();
+        VBox.setVgrow(topSpacer, Priority.ALWAYS);
+        VBox.setVgrow(bottomSpacer, Priority.ALWAYS);
+
+        VBox layout = new VBox(10, title, topSpacer, buttonBox, bottomSpacer);
+        layout.setAlignment(Pos.TOP_CENTER);
+        layout.setPadding(new Insets(50, 0, 0, 0));
+
+        // Use StackPane to layer the background image and the layout
+        StackPane root = new StackPane();
+        root.getChildren().addAll(backgroundImageView, layout);
+
+        Scene scene = new Scene(root);
         primaryStage.setScene(scene);
+        primaryStage.setFullScreen(true);
+        primaryStage.setFullScreenExitHint("");
         primaryStage.show();
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+}
+
+
+./src/main/java/com/yourapp/view/DeleteCoupons.java:
+package com.yourapp.view;
+
+import javafx.application.Application;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
+
+public class DeleteCoupons extends Application {
+    @Override
+    public void start(Stage primaryStage) {
+        primaryStage.setTitle("Delete Coupon");
+
+        // Create and display the OrderListWindow with edit action
+        OrderListWindow orderListWindow = new OrderListWindow();
+        orderListWindow.start(primaryStage, "delete");
+        primaryStage.setFullScreenExitHint("");
+        primaryStage.show();
+
+        // For now, just printing that the EditCoupon window is displayed
+        System.out.println("Delete window displayed");
     }
 
     public static void main(String[] args) {
@@ -116,17 +405,23 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Spinner;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Font;
 import javafx.stage.Stage;
 
-import java.sql.SQLException;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.sql.SQLException;
 
 public class CreateCoupons extends Application {
 
@@ -134,12 +429,36 @@ public class CreateCoupons extends Application {
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Create Coupons");
 
+        Image backgroundImage = null;
+        try {
+            backgroundImage = new Image(new FileInputStream("./src/main/resources/burgir.png"));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        ImageView backgroundImageView = new ImageView(backgroundImage);
+        backgroundImageView.setPreserveRatio(true);
+        backgroundImageView.fitWidthProperty().bind(primaryStage.widthProperty());
+        backgroundImageView.fitHeightProperty().bind(primaryStage.heightProperty());
+
+        // Load custom font
+        Font lobsterFont = null;
+        try {
+            lobsterFont = Font.loadFont(new FileInputStream("./src/main/resources/Lobster-Regular.ttf"), 36);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        // Create the title label with Lobster font
+        Label titleLabel = new Label("Create Coupons");
+        titleLabel.setFont(lobsterFont); // Use the custom font for the title
+        titleLabel.setStyle("-fx-text-fill: #333;"); // Optional: set a text color
+
         List<FoodItem> foodItems = DatabaseUtil.getFoodItems();
 
         GridPane gridPane = new GridPane();
-        gridPane.setVgap(10);
-        gridPane.setHgap(10);
-        gridPane.setPadding(new Insets(20));
+        gridPane.setVgap(20); // Increase vertical gap
+        gridPane.setHgap(20); // Increase horizontal gap
+        gridPane.setPadding(new Insets(30)); // Increase padding
         ColumnConstraints column1 = new ColumnConstraints();
         ColumnConstraints column2 = new ColumnConstraints();
         ColumnConstraints column3 = new ColumnConstraints();
@@ -156,17 +475,23 @@ public class CreateCoupons extends Application {
             if (!foodItem.getCategory().equals(currentCategory)) {
                 currentCategory = foodItem.getCategory();
                 Label categoryLabel = new Label(currentCategory);
-                categoryLabel.setStyle("-fx-font-weight: bold;");
+                categoryLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;"); // Increase font size for
+                                                                                       // category
                 gridPane.add(categoryLabel, 0, row, 3, 1); // Span 3 columns for category label
                 row++;
             }
 
             Label nameLabel = new Label(foodItem.getName());
+            nameLabel.setStyle("-fx-font-size: 16px;"); // Increase font size for item name
             Label priceLabel = new Label("Rs " + foodItem.getPrice() + ":");
+            priceLabel.setStyle("-fx-font-size: 16px;"); // Increase font size for price
+
             Spinner<Integer> foodSpinner = new Spinner<>(0, 10, 0);
+            foodSpinner.setStyle("-fx-font-size: 16px;"); // Increase font size for spinner
+            foodSpinner.setMaxWidth(100); // Increase width of spinner
             spinnerMap.put(foodItem, foodSpinner);
 
-            HBox itemBox = new HBox(10, nameLabel, priceLabel, foodSpinner);
+            HBox itemBox = new HBox(20, nameLabel, priceLabel, foodSpinner); // Increase spacing between elements
             itemBox.setAlignment(Pos.CENTER_LEFT);
 
             gridPane.add(nameLabel, 0, row);
@@ -176,6 +501,7 @@ public class CreateCoupons extends Application {
         }
 
         Button submitButton = new Button("Submit");
+        submitButton.setStyle("-fx-font-size: 18px; -fx-padding: 10 20;"); // Increase font size and padding for button
         submitButton.setOnAction(e -> {
             boolean isValidOrder = false;
             int totalPrice = 0;
@@ -206,6 +532,7 @@ public class CreateCoupons extends Application {
         });
 
         Button backButton = new Button("Back");
+        backButton.setStyle("-fx-font-size: 18px; -fx-padding: 10 20;"); // Increase font size and padding for button
         backButton.setOnAction(e -> {
             MainMenu mainMenu = new MainMenu();
             try {
@@ -215,17 +542,51 @@ public class CreateCoupons extends Application {
             }
         });
 
-        HBox buttonBox = new HBox(10, backButton, submitButton);
+        HBox buttonBox = new HBox(20, backButton, submitButton); // Increase spacing between buttons
         buttonBox.setAlignment(Pos.CENTER);
 
-        VBox mainBox = new VBox(20, gridPane, buttonBox);
+        VBox mainBox = new VBox(30, titleLabel, gridPane, buttonBox); // Add title to VBox
         mainBox.setAlignment(Pos.TOP_CENTER);
-        mainBox.setPadding(new Insets(20));
+        mainBox.setPadding(new Insets(30)); // Increase padding around VBox
         VBox.setVgrow(gridPane, Priority.ALWAYS);
 
-        Scene scene = new Scene(mainBox, 600, 600);
+        StackPane root = new StackPane();
+        root.getChildren().addAll(backgroundImageView, mainBox);
+
+        Scene scene = new Scene(root, 800, 800); // Initial scene size
         primaryStage.setScene(scene);
+        primaryStage.setFullScreen(true);
+        primaryStage.setFullScreenExitHint("");
         primaryStage.show();
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+}
+
+
+./src/main/java/com/yourapp/view/EditCoupons.java:
+package com.yourapp.view;
+
+import javafx.application.Application;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
+
+public class EditCoupons extends Application {
+
+    @Override
+    public void start(Stage primaryStage) {
+        primaryStage.setTitle("Edit Coupon");
+
+        // Create and display the OrderListWindow with edit action
+        OrderListWindow orderListWindow = new OrderListWindow();
+        orderListWindow.start(primaryStage, "edit");
+        primaryStage.setFullScreenExitHint("");
+        primaryStage.show();
+
+        // For now, just printing that the EditCoupon window is displayed
+        System.out.println("EditCoupon window displayed");
     }
 
     public static void main(String[] args) {
@@ -238,14 +599,22 @@ public class CreateCoupons extends Application {
 package com.yourapp.view;
 
 import javafx.application.Application;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import com.yourapp.util.DatabaseUtil;
 
 public class AdminLogin extends Application {
@@ -253,13 +622,53 @@ public class AdminLogin extends Application {
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Admin Login");
 
+        // Load background image
+        Image backgroundImage = null;
+        try {
+            backgroundImage = new Image(new FileInputStream("./src/main/resources/background3.jpg")); // Adjust path as
+                                                                                                      // needed
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        ImageView backgroundImageView = new ImageView(backgroundImage);
+        backgroundImageView.setPreserveRatio(true);
+
+        // Load custom font
+        Font lobsterFont = null;
+        try {
+            lobsterFont = Font.loadFont(new FileInputStream("./src/main/resources/Lobster-Regular.ttf"), 80); // Match
+                                                                                                              // MainMenu
+                                                                                                              // font
+                                                                                                              // size
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        // Title
+        Label title = new Label("Admin Login");
+        title.setFont(lobsterFont); // Use the same font as MainMenu
+        title.setStyle("-fx-text-fill: black;"); // Match title color to MainMenu
+
+        // UI Elements
         Label usernameLabel = new Label("Username:");
+        usernameLabel.setFont(Font.font("Arial", FontWeight.BOLD, 20)); // Bold text
         TextField usernameField = new TextField();
+        usernameField.setPrefWidth(300); // Adjust width as needed
+        usernameField.setMaxWidth(300); // Ensure it doesn't stretch
+
         Label passwordLabel = new Label("Password:");
+        passwordLabel.setFont(Font.font("Arial", FontWeight.BOLD, 20)); // Bold text
         PasswordField passwordField = new PasswordField();
+        passwordField.setPrefWidth(300); // Adjust width as needed
+        passwordField.setMaxWidth(300); // Ensure it doesn't stretch
+
         Button loginButton = new Button("Login");
+        loginButton.setFont(new Font("Arial", 20));
+        loginButton.setPrefWidth(150);
 
         Label messageLabel = new Label();
+        messageLabel.setFont(new Font("Arial", 14));
+        messageLabel.setStyle("-fx-text-fill: red;");
 
         loginButton.setOnAction(e -> {
             String username = usernameField.getText();
@@ -278,11 +687,221 @@ public class AdminLogin extends Application {
             }
         });
 
-        VBox vbox = new VBox(10, usernameLabel, usernameField, passwordLabel, passwordField, loginButton, messageLabel);
-        vbox.setAlignment(Pos.CENTER);
+        VBox formLayout = new VBox(10, usernameLabel, usernameField, passwordLabel, passwordField, loginButton,
+                messageLabel);
+        formLayout.setAlignment(Pos.CENTER);
+        formLayout.setPadding(new Insets(20));
+        formLayout.setSpacing(15);
 
-        Scene scene = new Scene(vbox, 300, 200);
+        // Main layout
+        VBox mainLayout = new VBox(20, title, formLayout);
+        mainLayout.setAlignment(Pos.CENTER);
+        mainLayout.setPadding(new Insets(50, 0, 0, 0)); // Padding at the top to position the title
+
+        // StackPane to layer the background image and the form
+        StackPane root = new StackPane();
+        root.getChildren().addAll(backgroundImageView, mainLayout);
+
+        // Full screen settings
+        Scene scene = new Scene(root);
         primaryStage.setScene(scene);
+        primaryStage.setFullScreen(true);
+        primaryStage.setFullScreenExitHint("");
+        primaryStage.show();
+
+        // Adjust background image size to full screen
+        backgroundImageView.fitWidthProperty().bind(primaryStage.widthProperty());
+        backgroundImageView.fitHeightProperty().bind(primaryStage.heightProperty());
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+}
+
+
+./src/main/java/com/yourapp/view/EditSingleCoupon.java:
+package com.yourapp.view;
+
+import com.yourapp.model.FoodItem;
+import com.yourapp.model.OrderDetails;
+import com.yourapp.util.DatabaseUtil;
+import javafx.application.Application;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.Spinner;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.text.Font;
+import javafx.stage.Stage;
+
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class EditSingleCoupon extends Application {
+
+    private OrderDetails orderDetails;
+
+    public EditSingleCoupon(OrderDetails orderDetails) {
+        this.orderDetails = orderDetails;
+    }
+
+    @Override
+    public void start(Stage primaryStage) {
+        primaryStage.setTitle("Edit Coupons");
+
+        Image backgroundImage = null;
+        try {
+            backgroundImage = new Image(new FileInputStream("./src/main/resources/burgir.png"));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        ImageView backgroundImageView = new ImageView(backgroundImage);
+        backgroundImageView.setFitWidth(1920); // Adjust size as needed
+        backgroundImageView.setFitHeight(1080);
+        backgroundImageView.setPreserveRatio(true);
+
+        // Load custom font
+        Font lobsterFont = null;
+        try {
+            lobsterFont = Font.loadFont(new FileInputStream("./src/main/resources/Lobster-Regular.ttf"), 36);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        // Create the title label with Lobster font
+        Label titleLabel = new Label("Edit Coupons");
+        titleLabel.setFont(lobsterFont); // Use the custom font for the title
+        titleLabel.setStyle("-fx-text-fill: #333;"); // Optional: set a text color
+
+        List<FoodItem> foodItems = DatabaseUtil.getFoodItems();
+
+        GridPane gridPane = new GridPane();
+        gridPane.setVgap(20); // Increase vertical gap
+        gridPane.setHgap(20); // Increase horizontal gap
+        gridPane.setPadding(new Insets(30)); // Increase padding
+        ColumnConstraints column1 = new ColumnConstraints();
+        ColumnConstraints column2 = new ColumnConstraints();
+        ColumnConstraints column3 = new ColumnConstraints();
+        column1.setHgrow(Priority.ALWAYS);
+        column2.setHgrow(Priority.NEVER);
+        column3.setHgrow(Priority.NEVER);
+        gridPane.getColumnConstraints().addAll(column1, column2, column3);
+
+        String currentCategory = "";
+        int row = 0;
+        Map<FoodItem, Spinner<Integer>> spinnerMap = new HashMap<>();
+
+        Map<FoodItem, Integer> existingOrderItems = orderDetails.getFoodItems();
+
+        for (FoodItem foodItem : foodItems) {
+            if (!foodItem.getCategory().equals(currentCategory)) {
+                currentCategory = foodItem.getCategory();
+                Label categoryLabel = new Label(currentCategory);
+                categoryLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;"); // Increase font size for
+                                                                                       // category
+                gridPane.add(categoryLabel, 0, row, 3, 1); // Span 3 columns for category label
+                row++;
+            }
+
+            Label nameLabel = new Label(foodItem.getName());
+            nameLabel.setStyle("-fx-font-size: 16px;"); // Increase font size for item name
+            Label priceLabel = new Label("Rs " + foodItem.getPrice() + ":");
+            priceLabel.setStyle("-fx-font-size: 16px;"); // Increase font size for price
+
+            // Find the corresponding FoodItem in existingOrderItems by matching id
+            int initialQuantity = 0;
+            for (Map.Entry<FoodItem, Integer> entry : existingOrderItems.entrySet()) {
+                if (entry.getKey().getId() == foodItem.getId()) {
+                    initialQuantity = entry.getValue();
+                    break;
+                }
+            }
+
+            Spinner<Integer> foodSpinner = new Spinner<>(0, 10, initialQuantity);
+            foodSpinner.setStyle("-fx-font-size: 16px;"); // Increase font size for spinner
+            foodSpinner.setMaxWidth(100); // Increase width of spinner
+            spinnerMap.put(foodItem, foodSpinner);
+
+            HBox itemBox = new HBox(20, nameLabel, priceLabel, foodSpinner); // Increase spacing between elements
+            itemBox.setAlignment(Pos.CENTER_LEFT);
+
+            gridPane.add(nameLabel, 0, row);
+            gridPane.add(priceLabel, 1, row);
+            gridPane.add(foodSpinner, 2, row);
+            row++;
+        }
+
+        Button editButton = new Button("Edit");
+        editButton.setStyle("-fx-font-size: 18px; -fx-padding: 10 20;"); // Increase font size and padding for button
+        editButton.setOnAction(e -> {
+            boolean isValidOrder = false;
+            int totalPrice = 0;
+
+            Map<FoodItem, Integer> orderItems = new HashMap<>();
+            for (Map.Entry<FoodItem, Spinner<Integer>> entry : spinnerMap.entrySet()) {
+                int quantity = entry.getValue().getValue();
+                if (quantity > 0) {
+                    isValidOrder = true;
+                    totalPrice += entry.getKey().getPrice() * quantity;
+                    orderItems.put(entry.getKey(), quantity);
+                }
+            }
+
+            if (isValidOrder) {
+                try {
+                    MainMenu mainMenu = new MainMenu();
+                    DatabaseUtil.updateOrder(orderDetails.getOrderId(), totalPrice, orderItems);
+                    System.out.println("Order " + orderDetails.getOrderId() + " updated.");
+                    mainMenu.start(primaryStage);
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            } else {
+                System.out.println("Please select at least one item.");
+            }
+        });
+
+        Button backButton = new Button("Back");
+        backButton.setStyle("-fx-font-size: 18px; -fx-padding: 10 20;"); // Increase font size and padding for button
+        backButton.setOnAction(e -> {
+            MainMenu mainMenu = new MainMenu();
+            try {
+                mainMenu.start(primaryStage);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        HBox buttonBox = new HBox(20, backButton, editButton); // Increase spacing between buttons
+        buttonBox.setAlignment(Pos.CENTER);
+
+        VBox mainBox = new VBox(30, titleLabel, gridPane, buttonBox); // Add title to VBox
+        mainBox.setAlignment(Pos.TOP_CENTER);
+        mainBox.setPadding(new Insets(30)); // Increase padding around VBox
+        VBox.setVgrow(gridPane, Priority.ALWAYS);
+
+        // Use StackPane to layer the background image and the layout
+        StackPane root = new StackPane();
+        root.getChildren().addAll(backgroundImageView, mainBox);
+
+        Scene scene = new Scene(root, 800, 800); // Adjust scene size if necessary
+        primaryStage.setScene(scene);
+        primaryStage.setFullScreen(true);
+        primaryStage.setFullScreenExitHint("");
         primaryStage.show();
     }
 
@@ -296,11 +915,14 @@ public class AdminLogin extends Application {
 package com.yourapp.util;
 
 import com.yourapp.model.FoodItem;
+import com.yourapp.model.OrderDetails;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -386,6 +1008,145 @@ public class DatabaseUtil {
             orderFoodStatement.executeBatch();
         }
     }
+
+    public static List<OrderDetails> getAllOrders() throws SQLException {
+        List<OrderDetails> orders = new ArrayList<>();
+
+        // Adjusted query to fetch order details
+        String query = "SELECT order_table.id AS order_id, food_items.id AS food_id, food_items.name AS item_name, order_food.quantity "
+                +
+                "FROM order_table " +
+                "JOIN order_food ON order_table.id = order_food.order_id " +
+                "JOIN food_items ON order_food.food_id = food_items.id " +
+                "ORDER BY order_table.id, order_food.order_food_id";
+
+        try (Connection connection = getConnection();
+                PreparedStatement statement = connection.prepareStatement(query);
+                ResultSet resultSet = statement.executeQuery()) {
+
+            Map<Integer, Map<FoodItem, Integer>> orderMap = new HashMap<>();
+
+            while (resultSet.next()) {
+                int orderId = resultSet.getInt("order_id");
+                int foodId = resultSet.getInt("food_id");
+                String itemName = resultSet.getString("item_name");
+                int quantity = resultSet.getInt("quantity");
+
+                // Assuming FoodItem has a category and price, you may adjust this constructor
+                // call
+                FoodItem foodItem = new FoodItem(foodId, itemName, null, 0);
+                orderMap.computeIfAbsent(orderId, k -> new HashMap<>()).put(foodItem, quantity);
+            }
+
+            for (Map.Entry<Integer, Map<FoodItem, Integer>> entry : orderMap.entrySet()) {
+                orders.add(new OrderDetails(entry.getKey(), entry.getValue()));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return orders;
+    }
+
+    public static void deleteOrder(int orderId) throws SQLException {
+        String query = "DELETE FROM order_table WHERE id = ?";
+
+        try (Connection connection = getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+
+            preparedStatement.setInt(1, orderId);
+            int rowsAffected = preparedStatement.executeUpdate();
+
+            if (rowsAffected > 0) {
+                System.out.println("Order " + orderId + " deleted successfully.");
+            } else {
+                System.out.println("No order found with ID " + orderId);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        resetAutoIncrement();
+    }
+    
+    private static void resetAutoIncrement() throws SQLException {
+        // Execute SQL in separate steps
+        try (Connection connection = getConnection()) {
+            // 1. Find the maximum ID
+            String maxIdQuery = "SELECT COALESCE(MAX(id), 0) AS max_id FROM order_table";
+            try (Statement stmt = connection.createStatement();
+                    ResultSet rs = stmt.executeQuery(maxIdQuery)) {
+
+                int maxId = 0;
+                if (rs.next()) {
+                    maxId = rs.getInt("max_id");
+                }
+
+                // 2. Reset the AUTO_INCREMENT
+                String resetQuery = "ALTER TABLE order_table AUTO_INCREMENT = ?";
+                try (PreparedStatement ps = connection.prepareStatement(resetQuery)) {
+                    ps.setInt(1, maxId + 1);
+                    ps.executeUpdate();
+                }
+            }
+        }
+    }
+
+    public static void updateOrder(int orderId, int totalPrice, Map<FoodItem, Integer> orderItems) throws SQLException {
+        Connection connection = null;
+        PreparedStatement updateOrderStmt = null;
+        PreparedStatement deleteOrderItemsStmt = null;
+        PreparedStatement insertOrderItemStmt = null;
+
+        try {
+            connection = getConnection();
+            connection.setAutoCommit(false);
+
+            String updateOrderQuery = "UPDATE order_table SET total_price = ? WHERE id = ?";
+            updateOrderStmt = connection.prepareStatement(updateOrderQuery);
+            updateOrderStmt.setInt(1, totalPrice);
+            updateOrderStmt.setInt(2, orderId);
+            updateOrderStmt.executeUpdate();
+
+            String deleteOrderItemsQuery = "DELETE FROM order_food WHERE order_id = ?";
+            deleteOrderItemsStmt = connection.prepareStatement(deleteOrderItemsQuery);
+            deleteOrderItemsStmt.setInt(1, orderId);
+            deleteOrderItemsStmt.executeUpdate();
+
+            String insertOrderItemQuery = "INSERT INTO order_food (order_id, food_id, quantity) VALUES (?, ?, ?)";
+            insertOrderItemStmt = connection.prepareStatement(insertOrderItemQuery);
+
+            for (Map.Entry<FoodItem, Integer> entry : orderItems.entrySet()) {
+                insertOrderItemStmt.setInt(1, orderId);
+                insertOrderItemStmt.setInt(2, entry.getKey().getId());
+                insertOrderItemStmt.setInt(3, entry.getValue());
+                insertOrderItemStmt.addBatch();
+            }
+
+            insertOrderItemStmt.executeBatch();
+
+            connection.commit();
+        } catch (SQLException e) {
+            if (connection != null) {
+                connection.rollback();
+            }
+            throw e;
+        } finally {
+            if (updateOrderStmt != null) {
+                updateOrderStmt.close();
+            }
+            if (deleteOrderItemsStmt != null) {
+                deleteOrderItemsStmt.close();
+            }
+            if (insertOrderItemStmt != null) {
+                insertOrderItemStmt.close();
+            }
+            if (connection != null) {
+                connection.setAutoCommit(true);
+                connection.close();
+            }
+        }
+    }    
+
 }
 
 

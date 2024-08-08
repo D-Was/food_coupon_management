@@ -2,6 +2,7 @@ package com.yourapp.view;
 
 import com.yourapp.model.FoodItem;
 import com.yourapp.util.DatabaseUtil;
+import com.yourapp.util.ReceiptGenerator;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -126,6 +127,7 @@ public class CreateCoupons extends Application {
                     int orderId = DatabaseUtil.insertOrder(totalPrice);
                     DatabaseUtil.insertOrderItems(orderId, orderItems);
                     System.out.println("Order submitted with token number: " + orderId);
+                    ReceiptGenerator.generateReceipt(orderId, orderItems);
                     mainMenu.start(primaryStage);
                 } catch (SQLException ex) {
                     ex.printStackTrace();

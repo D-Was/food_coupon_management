@@ -3,6 +3,7 @@ package com.yourapp.view;
 import com.yourapp.model.FoodItem;
 import com.yourapp.model.OrderDetails;
 import com.yourapp.util.DatabaseUtil;
+import com.yourapp.util.ReceiptGenerator;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -150,6 +151,7 @@ public class OrderListWindow {
         deleteButton.setOnAction(event -> {
             try {
                 DatabaseUtil.deleteOrder(orderId);
+                ReceiptGenerator.deleteReceipt(orderId);
                 confirmationStage.close();
                 MainMenu m = new MainMenu();
                 m.start(owner);

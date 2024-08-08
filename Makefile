@@ -23,6 +23,7 @@ compile:
 		$(SRC_DIR)/com/yourapp/view/DeleteCoupons.java \
 		$(SRC_DIR)/com/yourapp/view/CreateCoupons.java \
 		$(SRC_DIR)/com/yourapp/util/DatabaseUtil.java \
+		$(SRC_DIR)/com/yourapp/util/ReceiptGenerator.java \
 		$(SRC_DIR)/com/yourapp/model/FoodItem.java \
 		$(SRC_DIR)/com/yourapp/model/OrderDetails.java 
 

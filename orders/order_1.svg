@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<svg baseProfile="tiny" height="297mm" version="1.2" width="210mm" xmlns="http://www.w3.org/2000/svg" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs />
+  <rect fill="white" height="287mm" rx="5" ry="5" stroke="black" width="200mm" x="5" y="5" />
+  <text font-size="30px" font-weight="bold" x="50" y="50">Hattiban Khaja Ghar</text>
+  <text font-size="18px" x="50" y="90">Address: Hattiban, Lalitpur</text>
+  <text font-size="18px" x="50" y="120">Telp. 11223344</text>
+  <text font-size="18px" x="50" y="150">****************************************</text>
+  <text font-size="24px" font-weight="bold" x="50" y="180">Order No: 1</text>
+  <text font-size="18px" x="50" y="210">****************************************</text>
+  <text font-size="22px" font-weight="bold" x="50" y="240">Food Item</text>
+  <text font-size="22px" font-weight="bold" x="200" y="240">Qty</text>
+  <text font-size="22px" font-weight="bold" x="300" y="240">Price</text>
+  <text font-size="18px" x="50" y="270">Chicken Momo</text>
+  <text font-size="18px" x="200" y="270">2</text>
+  <text font-size="18px" x="300" y="270">300.00</text>
+  <text font-size="18px" x="50" y="300">Coke</text>
+  <text font-size="18px" x="200" y="300">2</text>
+  <text font-size="18px" x="300" y="300">100.00</text>
+  <text font-size="18px" x="50" y="330">Buff Momo</text>
+  <text font-size="18px" x="200" y="330">1</text>
+  <text font-size="18px" x="300" y="330">130.00</text>
+  <text font-size="18px" x="50" y="360">****************************************</text>
+  <text font-size="22px" font-weight="bold" x="50" y="390">Total</text>
+  <text font-size="22px" font-weight="bold" x="300" y="390">530.00</text>
+  <text font-size="18px" x="50" y="420">****************************************</text>
+  <text font-size="24px" font-weight="bold" x="50" y="450">THANK YOU!</text>
+</svg>

@@ -3,6 +3,7 @@ package com.yourapp.view;
 import com.yourapp.model.FoodItem;
 import com.yourapp.model.OrderDetails;
 import com.yourapp.util.DatabaseUtil;
+import com.yourapp.util.ReceiptGenerator;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -143,6 +144,8 @@ public class EditSingleCoupon extends Application {
                     MainMenu mainMenu = new MainMenu();
                     DatabaseUtil.updateOrder(orderDetails.getOrderId(), totalPrice, orderItems);
                     System.out.println("Order " + orderDetails.getOrderId() + " updated.");
+                    ReceiptGenerator.deleteReceipt(orderDetails.getOrderId());
+                    ReceiptGenerator.generateReceipt(orderDetails.getOrderId(),orderItems);
                     mainMenu.start(primaryStage);
                 } catch (SQLException ex) {
                     ex.printStackTrace();
